@@ -1,0 +1,39 @@
+Fix compilation warnings found by new gcc 4.3.
+
+1) netcat.c:125: error: 'proxy' may be used uninitialized in this function
+2) netcat.c:791: error: the address of 'obuf' will always evaluate as 'true'
+
+Written-by: Jan Safranek <jsafrane@redhat.com>
+
+--- nc/netcat.c.orig	2008-01-07 13:50:55.000000000 +0100
++++ nc/netcat.c	2008-01-07 14:00:44.000000000 +0100
+@@ -122,7 +122,7 @@ main(int argc, char *argv[])
+ 	struct servent *sv;
+ 	socklen_t len;
+ 	struct sockaddr_storage cliaddr;
+-	char *proxy;
++	char *proxy = NULL;
+ 	const char *proxyhost = "", *proxyport = NULL;
+ 	struct addrinfo proxyhints;
+ 
+@@ -788,14 +788,12 @@ atelnet(int nfd, unsigned char *buf, uns
+ 			obuf[1] = DONT;
+ 		if ((*p == DO) || (*p == DONT))
+ 			obuf[1] = WONT;
+-		if (obuf) {
+-			p++;
+-			obuf[2] = *p;
+-			obuf[3] = '\0';
+-			if (atomicio(vwrite, nfd, obuf, 3) != 3)
+-				warn("Write Error!");
+-			obuf[0] = '\0';
+-		}
++		p++;
++		obuf[2] = *p;
++		obuf[3] = '\0';
++		if (atomicio(vwrite, nfd, obuf, 3) != 3)
++			warn("Write Error!");
++		obuf[0] = '\0';
+ 	}
+ }
+ 

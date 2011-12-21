@@ -1,0 +1,65 @@
+--- nc/netcat.c.crlf	2006-08-23 09:22:23.000000000 +0200
++++ nc/netcat.c	2006-08-23 09:38:19.000000000 +0200
+@@ -82,6 +82,7 @@
+ int	Dflag;					/* sodebug */
+ int	Sflag;					/* TCP MD5 signature option */
+ int	Tflag = -1;				/* IP Type of Service */
++int	Cflag = 0;				/* CRLF line-ending */
+ 
+ int timeout = -1;
+ int family = AF_UNSPEC;
+@@ -124,7 +125,7 @@
+ 	sv = NULL;
+ 
+ 	while ((ch = getopt(argc, argv,
+-	    "46Ddhi:jklnp:rSs:tT:Uuvw:X:x:z")) != -1) {
++	    "46Ddhi:jklnp:rSs:tT:Uuvw:X:x:zC")) != -1) {
+ 		switch (ch) {
+ 		case '4':
+ 			family = AF_INET;
+@@ -211,6 +212,9 @@
+ 		case 'T':
+ 			Tflag = parse_iptos(optarg);
+ 			break;
++		case 'C':
++			Cflag = 1;
++			break;
+ 		default:
+ 			usage(1);
+ 		}
+@@ -645,8 +649,16 @@
+ 			else if (n == 0) {
+ 				goto shutdown_wr;
+ 			} else {
+-				if (atomicio(vwrite, nfd, buf, n) != n)
+-					return;
++				if ((Cflag) && (buf[n-1]=='\n')) {
++					if (atomicio(vwrite, nfd, buf, n-1) != (n-1))
++						return;
++					if (atomicio(vwrite, nfd, "\r\n", 2) != 2)
++						return;
++				}
++				else {
++					if (atomicio(vwrite, nfd, buf, n) != n)
++						return;
++				}
+ 			}
+ 		    }
+ 		    else if (pfd[1].revents & POLLHUP) {
+@@ -845,6 +857,7 @@
+ #endif
+ "	\t-s addr\t	Local source address\n\
+ 	\t-T ToS\t	Set IP Type of Service\n\
++	\t-C		Send CRLF as line-ending\n\
+ 	\t-t		Answer TELNET negotiation\n\
+ 	\t-U		Use UNIX domain socket\n\
+ 	\t-u		UDP mode\n\
+@@ -860,7 +873,7 @@
+ void
+ usage(int ret)
+ {
+-	fprintf(stderr, "usage: nc [-46DdhklnrStUuvz] [-i interval] [-p source_port]\n");
++	fprintf(stderr, "usage: nc [-46DdhklnrStUuvzC] [-i interval] [-p source_port]\n");
+ 	fprintf(stderr, "\t  [-s source_ip_address] [-T ToS] [-w timeout] [-X proxy_version]\n");
+ 	fprintf(stderr, "\t  [-x proxy_address[:port]] [hostname] [port[s]]\n");
+ 	if (ret)

@@ -1,0 +1,13 @@
+--- nc/netcat.c.reuseaddr	2005-10-21 11:58:56.000000000 +0200
++++ nc/netcat.c	2005-10-21 11:59:30.000000000 +0200
+@@ -548,6 +548,10 @@ local_listen(char *host, char *port, str
+ 		if ((s = socket(res0->ai_family, res0->ai_socktype,
+ 		    res0->ai_protocol)) < 0)
+ 			continue;
++
++		ret = setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &x, sizeof(x));
++		if (ret == -1)
++			err(1, NULL);
+ 		#ifdef SO_REUSEPORT
+ 		ret = setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &x, sizeof(x));
+ 		if (ret == -1)

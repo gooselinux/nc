@@ -1,0 +1,94 @@
+--- nc/netcat.c.glib	2005-11-18 11:23:13.000000000 +0100
++++ nc/netcat.c	2005-11-18 11:38:00.000000000 +0100
+@@ -54,6 +54,8 @@
+ #include <fcntl.h>
+ #include "atomicio.h"
+ 
++#include <glib.h>
++
+ #ifndef SUN_LEN
+ #define SUN_LEN(su) \
+ 	(sizeof(*(su)) - sizeof((su)->sun_path) + strlen((su)->sun_path))
+@@ -411,7 +413,7 @@
+ 	memset(&sun, 0, sizeof(struct sockaddr_un));
+ 	sun.sun_family = AF_UNIX;
+ 
+-	if (strlcpy(sun.sun_path, path, sizeof(sun.sun_path)) >=
++	if (g_strlcpy(sun.sun_path, path, sizeof(sun.sun_path)) >=
+ 	    sizeof(sun.sun_path)) {
+ 		close(s);
+ 		errno = ENAMETOOLONG;
+@@ -442,7 +444,7 @@
+ 	memset(&sun, 0, sizeof(struct sockaddr_un));
+ 	sun.sun_family = AF_UNIX;
+ 
+-	if (strlcpy(sun.sun_path, path, sizeof(sun.sun_path)) >=
++	if (g_strlcpy(sun.sun_path, path, sizeof(sun.sun_path)) >=
+ 	    sizeof(sun.sun_path)) {
+ 		close(s);
+ 		errno = ENAMETOOLONG;
+@@ -553,11 +555,11 @@
+ 		if ((s = socket(res0->ai_family, res0->ai_socktype,
+ 		    res0->ai_protocol)) < 0)
+ 			continue;
+-
++		#ifdef SO_REUSEPORT
+ 		ret = setsockopt(s, SOL_SOCKET, SO_REUSEPORT, &x, sizeof(x));
+ 		if (ret == -1)
+ 			err(1, NULL);
+-
++		#endif
+ 		set_common_sockopts(s);
+ 
+ 		if (bind(s, (struct sockaddr *)res0->ai_addr,
+@@ -722,7 +724,8 @@
+ 			char *c;
+ 
+ 			for (x = 0; x <= (hi - lo); x++) {
+-				y = (arc4random() & 0xFFFF) % (hi - lo);
++				/* use random instead of arc4random */
++				y = (random() & 0xFFFF) % (hi - lo);
+ 				c = portlist[x];
+ 				portlist[x] = portlist[y];
+ 				portlist[y] = c;
+@@ -764,21 +767,25 @@
+ {
+ 	int x = 1;
+ 
++#ifdef TCP_MD5SIG
+ 	if (Sflag) {
+ 		if (setsockopt(s, IPPROTO_TCP, TCP_MD5SIG,
+ 			&x, sizeof(x)) == -1)
+ 			err(1, NULL);
+ 	}
++#endif
+ 	if (Dflag) {
+ 		if (setsockopt(s, SOL_SOCKET, SO_DEBUG,
+ 			&x, sizeof(x)) == -1)
+ 			err(1, NULL);
+ 	}
++#ifdef SO_JUMBO
+ 	if (jflag) {
+ 		if (setsockopt(s, SOL_SOCKET, SO_JUMBO,
+ 			&x, sizeof(x)) == -1)
+ 			err(1, NULL);
+ 	}
++#endif
+ 	if (Tflag != -1) {
+ 		if (setsockopt(s, IPPROTO_IP, IP_TOS,
+ 		    &Tflag, sizeof(Tflag)) == -1)
+@@ -818,9 +825,11 @@
+ 	\t-l		Listen mode, for inbound connects\n\
+ 	\t-n		Suppress name/port resolutions\n\
+ 	\t-p port\t	Specify local port for remote connects\n\
+-	\t-r		Randomize remote ports\n\
+-	\t-S		Enable the TCP MD5 signature option\n\
+-	\t-s addr\t	Local source address\n\
++	\t-r		Randomize remote ports\n "
++#ifdef TCP_MD5SIG
++"	\t-S		Enable the TCP MD5 signature option\n"
++#endif
++"	\t-s addr\t	Local source address\n\
+ 	\t-T ToS\t	Set IP Type of Service\n\
+ 	\t-t		Answer TELNET negotiation\n\
+ 	\t-U		Use UNIX domain socket\n\

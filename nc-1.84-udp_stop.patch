@@ -1,0 +1,12 @@
+--- nc/netcat.c.udp_stop	2006-07-10 09:46:00.000000000 +0200
++++ nc/netcat.c	2006-07-10 09:49:16.000000000 +0200
+@@ -714,6 +714,9 @@
+ 			pfd[0].fd = -1;
+ 			pfd[0].events = 0;
+ 		}
++		else if (pfd[0].revents & POLLERR)
++			if (write(nfd, "", 1) == -1)
++			    warn("Write error");
+ 
+ 		if (!dflag) {
+ 		    if(pfd[1].revents & POLLIN) {

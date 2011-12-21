@@ -1,0 +1,52 @@
+--- nc/netcat.c.orig	2006-08-28 20:13:48.000000000 +0200
++++ nc/netcat.c	2006-08-29 02:11:28.000000000 +0200
+@@ -41,6 +41,7 @@
+ #include <netinet/tcp.h>
+ #include <netinet/ip.h>
+ #include <arpa/telnet.h>
++#include <arpa/inet.h>
+ 
+ #include <err.h>
+ #include <errno.h>
+@@ -312,16 +313,15 @@
+ 			if (uflag) {
+ 				int rv, plen;
+ 				char buf[8192];
+-				struct sockaddr_storage z;
+ 
+-				len = sizeof(z);
++				len = sizeof(cliaddr);
+ 				plen = jflag ? 8192 : 1024;
+ 				rv = recvfrom(s, buf, plen, MSG_PEEK,
+-				    (struct sockaddr *)&z, &len);
++				    (struct sockaddr *)&cliaddr, &len);
+ 				if (rv < 0)
+ 					err(1, "recvfrom");
+ 
+-				rv = connect(s, (struct sockaddr *)&z, len);
++				rv = connect(s, (struct sockaddr *)&cliaddr, len);
+ 				if (rv < 0)
+ 					err(1, "connect");
+ 
+@@ -332,6 +332,21 @@
+ 				    &len);
+ 			}
+ 
++			if(vflag) {
++				/* Don't look up port if -n. */
++				if (nflag)
++					sv = NULL;
++				else 
++					sv = getservbyport(ntohs(atoi(uport)),
++						uflag ? "udp" : "tcp");
++
++				fprintf(stderr, "Connection from %s port %s [%s/%s] accepted\n", 
++					inet_ntoa(((struct sockaddr_in *)(&cliaddr))->sin_addr),
++					uport,
++					uflag ? "udp" : "tcp", 
++					sv ? sv->s_name : "*");
++			}
++
+ 			readwrite(connfd);
+ 			close(connfd);
+ 			if (family != AF_UNIX)

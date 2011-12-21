@@ -1,0 +1,11 @@
+--- nc/netcat.c.orig	2009-07-27 10:21:34.000000000 +0200
++++ nc/netcat.c	2009-07-27 11:26:23.000000000 +0200
+@@ -336,7 +336,7 @@
+ 				    &len);
+ 			}
+ 
+-			if(vflag) {
++			if(vflag && family != AF_UNIX) {
+ 				/* Don't look up port if -n. */
+ 				if (nflag)
+ 					sv = NULL;
